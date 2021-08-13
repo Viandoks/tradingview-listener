@@ -1,0 +1,35 @@
+{
+  "name": "tradingview-listener",
+  "version": "1.0.0",
+  "description": "A simple webhook listener for Tradingview",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js",
+    "request": "node request.js"
+  },
+  "keywords": [
+    "nodejs",
+    "node",
+    "webhook",
+    "tradingview",
+    "pinescript",
+    "express",
+    "automated",
+    "trading",
+    "technical",
+    "analisys",
+    "ccxt",
+    "cryptocurrency",
+    "forex",
+    "bot"
+  ],
+  "author": "Alexandre Taverdon",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "ccxt": "^1.54.64",
+    "dotenv": "^10.0.0",
+    "express": "^4.17.1"
+  }
+}
