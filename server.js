@@ -1,21 +1,22 @@
 const express = require('express'),
     bodyParser = require('body-parser'),
     ccxt = require('ccxt'),
-    dotenv = require('dotenv'),
-    app = express();
+    app = express(),
+    fs = require('fs');
 
-// get env variables
-dotenv.config();
+// get configuration
+const conf = JSON.parse( fs.readFileSync('conf.json') );
 
 // define Portfolio class
 class Portfolio {
-    constructor(_exchange, _apikey, _secret) {
+    constructor(_exchange, _apikey, _secret, _name="anonymous") {
         if(!_apikey || !_secret) {
             console.warn('API_KEY or SECRET missing')
         }
         // Init exchange
         console.log('Init CCXT exchange', _exchange);
         try {
+            this.name = _name
             this.exchange = new ccxt[_exchange]({
                 'apiKey': _apikey,
                 'secret': _secret,
@@ -37,7 +38,7 @@ class Portfolio {
                 'asset': balances['free'][asset],
                 'market': balances['free'][market]
             }
-            console.log('Available balance:', balance);
+            console.log(`Available balance for ${this.name}:`, balance);
             return balance
         } catch (e) {
             console.log (e.constructor.name, e.message)
@@ -48,24 +49,23 @@ class Portfolio {
     async sendOrder (symbol, side, amount= 0, price= 0, type = 'limit') {
         try {
             const order = await this.exchange.createOrder (symbol, type, side, amount, price);
-            console.log('Order passed:', order);
+            console.log(`Order passed for ${this.name}: ${order}`);
             return order;
         } catch (e) {
-            console.log (e.constructor.name, e.message)
+            console.log (this.name, e.constructor.name, e.message)
         }
     }
 
 }
 
 // Set allowed IPs
-const whitelistIps = process.env.WHITELIST.split(' ')
 app.use((req, res, next) => {
     console.log('//=========================');
     const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim();
     console.log("Incoming from:", ip)
 
     // check for whitelisted IP
-    if(!whitelistIps.includes(ip)) {
+    if(!conf.whitelist.includes(ip)) {
         // Invalid ip
         console.log("Bad IP: ", ip, 'Throw 403');
         res.status(403).send()
@@ -97,40 +97,25 @@ app.post('/tradingview-listener', function (req, res) {
         return
     }
 
-    let order_amount,
-        portfolio_balance;
-
-    // Code your logic here
     (async () => {
-
-        // get available balance
-        portfolio_balance = await portfolio.getBalance(order_symbol);
-
-        // pass order
-        order_amount = order_direction==='buy'?portfolio_balance['market']/order_price:(order_direction==='sell'?portfolio_balance['asset']:0);
-        order_amount = order_amount*0.1 // 10% of available balance)
-
-        // // UNCOMMENT AT YOUR OWN RISK TO EXECUTE ORDER FOR REAL
-        // const order = await portfolio.sendOrder(order_symbol, order_direction, order_amount, order_price, order_type);
-
-        // send success
-        // res.status(200).send()
-        res.json({
-            portfolio_balance,
-            order_direction,
-            order_amount,
-            order_price,
-            order_type,
-            order_symbol,
-            order_asset,
-            order_market
-        });
-    }) ()
+        let responses = {}
+        for (const [exchange, portfolio] of Object.entries(portfolios)) {
+            for (const [name, data] of Object.entries(conf.exchanges[exchange])) {
+                portfolio.name = name;
+                portfolio.exchange.apiKey = data.apiKey;
+                portfolio.exchange.secret = data.secret;
+                await executeStrategy(portfolio, order_direction, order_price, order_type, order_symbol, order_asset, order_market).then((json) => {
+                    responses[portfolio.name] = json;
+                });
+            }
+        }
+        return res.json(responses)
+    })()
 
 });
 
 // express server instance
-const server = app.listen(process.env.SERVER_PORT, '0.0.0.0', function () { // listen to IPv4 only
+const server = app.listen(conf.serverPort, '0.0.0.0', function () { // listen to IPv4 only
 
     const host = server.address().address
     const port = server.address().port
@@ -139,4 +124,40 @@ const server = app.listen(process.env.SERVER_PORT, '0.0.0.0', function () { // l
 });
 
 // portfolio instance
-const portfolio = new Portfolio(process.env.EXCHANGE, process.env.API_KEY, process.env.API_SECRET)
+let portfolios = {};
+
+for(const exchange of Object.keys(conf.exchanges)) {
+    portfolios[exchange] = new Portfolio(exchange, "asd", "asd")
+}
+
+const executeStrategy = async (portfolio, order_direction, order_price, order_type, order_symbol, order_asset, order_market) => {
+    /**
+     * Code your logic here
+     **/
+
+    let order_amount,
+        portfolio_balance;
+
+    // get available balance
+    portfolio_balance = await portfolio.getBalance(order_symbol);
+
+    // pass order
+    order_amount = order_direction==='buy'?portfolio_balance['market']/order_price:(order_direction==='sell'?portfolio_balance['asset']*order_price:0);
+    order_amount = order_amount*0.1 // 10% of available balance)
+
+    // // UNCOMMENT AT YOUR OWN RISK TO EXECUTE ORDER FOR REAL
+    // const order = await portfolio.sendOrder(order_symbol, order_direction, order_amount, order_price, order_type);
+
+    // send success
+    // res.status(200).send()
+    return {
+        portfolio_balance,
+        order_direction,
+        order_amount,
+        order_price,
+        order_type,
+        order_symbol,
+        order_asset,
+        order_market
+    };
+}
