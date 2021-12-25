@@ -142,7 +142,7 @@ const executeStrategy = async (portfolio, order_direction, order_price, order_ty
     portfolio_balance = await portfolio.getBalance(order_symbol);
 
     // pass order
-    order_amount = order_direction==='buy'?portfolio_balance['market']/order_price:(order_direction==='sell'?portfolio_balance['asset']*order_price:0);
+    order_amount = order_direction==='buy'?portfolio_balance['market']/order_price:(order_direction==='sell'?portfolio_balance['asset']:0);
     order_amount = order_amount*0.1 // 10% of available balance)
 
     // // UNCOMMENT AT YOUR OWN RISK TO EXECUTE ORDER FOR REAL
