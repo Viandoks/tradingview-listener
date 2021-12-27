@@ -1,21 +1,18 @@
 {
-  "accounts" : {
-    "account-name-1": {
+  "accounts" : [
+    {
+      "name": "account-name-1",
       "exchange": "binance",
       "apiKey": "apikey1",
       "secret": "secret1"
     },
-    "account-name-2": {
-      "exchange": "binance",
-      "apiKey": "apikey2",
-      "secret": "secret2"
-    },
-    "account-name-3": {
+    {
+      "name": "account-name-2",
       "exchange": "poloniex",
-      "apiKey": "apikey3",
+      "apiKey": "apikey2",
       "secret": "secret3"
     }
-  },
+  ],
   "serverPort": 8000,
   "whitelist": [
     "127.0.0.1",
