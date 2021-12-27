@@ -2,10 +2,10 @@
   "name": "tradingview-listener",
   "version": "1.0.0",
   "description": "A simple webhook listener for Tradingview",
-  "main": "server.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
+    "start": "node app.js",
     "request": "node request.js"
   },
   "keywords": [

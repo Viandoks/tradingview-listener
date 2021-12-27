@@ -33,7 +33,7 @@ For more information on how to pass dynamic values such as `{{close}}` refer to 
 
 ## Files
 
-`server.js` is the main app, where the logic resides
+`app.js` is the main app, where the logic resides
 
 `request.js` is a simple POST request to localhost with some default values to test the connection.
 

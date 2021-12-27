@@ -92,7 +92,6 @@ const initServer = async () => {
         console.log('Listening at http://%s:%s', host, port)
     });
 
-
     // Set allowed IPs
     app.use((req, res, next) => {
         console.log('//=========================');
