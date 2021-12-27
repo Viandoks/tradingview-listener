@@ -4,7 +4,7 @@
 
 ##How To
 
-Copy `conf.example.json` to `conf.json` and modify it to your needs. In order to really use Tradingview's webhooks, you'll have to configure the server to listen to port 80.
+Rename `conf.example.json` to `conf.json` and modify it to your needs. In order to really use Tradingview's webhooks, you'll have to configure the server to listen to port 80.
 
 `exchanges` should in the list of exchanges supported by [CCXT](https://github.com/ccxt/ccxt)
 
