@@ -4,9 +4,9 @@
 
 ##How To
 
-Copy `env.sample` to `.env` and modify it to your needs. In order to really use Tradingview's webhooks, you'll have to configure the server to listen to port 80.
+Rename `conf.example.json` to `conf.json` and modify it to your needs. In order to really use Tradingview's webhooks, you'll have to configure the server to listen to port 80.
 
-`EXCHANGE` should in the list of exchanges supported by [CCXT](https://github.com/ccxt/ccxt)
+`exchanges` should in the list of exchanges supported by [CCXT](https://github.com/ccxt/ccxt)
 
 IPs are the ones given by Tradingviews + localhost
 
@@ -33,7 +33,7 @@ For more information on how to pass dynamic values such as `{{close}}` refer to 
 
 ## Files
 
-`server.js` is the main app, where the logic resides
+`app.js` is the main app, where the logic resides
 
 `request.js` is a simple POST request to localhost with some default values to test the connection.
 
