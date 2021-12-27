@@ -58,76 +58,97 @@ class Portfolio {
 
 }
 
-// Set allowed IPs
-app.use((req, res, next) => {
-    console.log('//=========================');
-    const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim();
-    console.log("Incoming from:", ip)
-
-    // check for whitelisted IP
-    if(!conf.whitelist.includes(ip)) {
-        // Invalid ip
-        console.log("Bad IP: ", ip, 'Throw 403');
-        res.status(403).send()
-
-    } else {
-        next();
-    }
-})
-
-// Use json body parser
-app.use(bodyParser.json());
-
-// Webhook should be received as POST
-app.post('/tradingview-listener', function (req, res) {
-    // get request body
-    const webhook_data = req.body;
-    console.log('Webhook received', webhook_data);
-
-    // format order variables
-    const order_direction = webhook_data.direction,
-        order_price     = webhook_data.price,
-        order_type      = webhook_data.type,
-        order_symbol    = webhook_data.symbol,
-        [order_asset, order_market] = order_symbol.split('/');
-
-    if(!order_direction || !order_price || !order_type || !order_symbol || !order_asset || !order_market) {
-        console.log('Wrong Webhook format. Throw 403')
-        res.status(403).send()
-        return
-    }
-
-    (async () => {
-        let responses = {}
-        for (const [exchange, portfolio] of Object.entries(portfolios)) {
-            for (const [name, data] of Object.entries(conf.exchanges[exchange])) {
-                portfolio.name = name;
-                portfolio.exchange.apiKey = data.apiKey;
-                portfolio.exchange.secret = data.secret;
-                await executeStrategy(portfolio, order_direction, order_price, order_type, order_symbol, order_asset, order_market).then((json) => {
-                    responses[portfolio.name] = json;
-                });
-            }
-        }
-        return res.json(responses)
-    })()
-
-});
-
-// express server instance
-const server = app.listen(conf.serverPort, '0.0.0.0', function () { // listen to IPv4 only
-
-    const host = server.address().address
-    const port = server.address().port
-
-    console.log('Listening at http://%s:%s', host, port)
-});
-
 // portfolio instance
 let portfolios = {};
 
-for(const exchange of Object.keys(conf.exchanges)) {
-    portfolios[exchange] = new Portfolio(exchange, "asd", "asd")
+const initPortfolios = async () => {
+    Object.entries(conf.accounts).forEach((account) => {
+        const [name, info] = account;
+        // check if the exchange is supported by CCXT
+        if (ccxt.exchanges.indexOf(info.exchange) === -1) {
+            console.warn(`${info.exchange} is not a supported exchange, skipping.`);
+            return;
+        }
+
+        if (Object.keys(portfolios).includes(info.exchange)) {
+            console.warn(`${info.exchange} already initiated, skipping.`);
+            return;
+        }
+
+        portfolios[info.exchange] = new Portfolio(info.exchange, "_apikey", "_secret")
+    })
+
+}
+
+// express server instance
+let server = {};
+
+const initServer = async () => {
+    server = app.listen(conf.serverPort, '0.0.0.0', function () { // listen to IPv4 only
+
+        const host = server.address().address
+        const port = server.address().port
+
+        console.log('Listening at http://%s:%s', host, port)
+    });
+
+
+    // Set allowed IPs
+    app.use((req, res, next) => {
+        console.log('//=========================');
+        const ip = (req.headers['x-forwarded-for'] || req.connection.remoteAddress || '').split(',')[0].trim();
+        console.log("Incoming from:", ip)
+
+        // check for whitelisted IP
+        if(!conf.whitelist.includes(ip)) {
+            // Invalid ip
+            console.log("Bad IP: ", ip, 'Throw 403');
+            res.status(403).send()
+
+        } else {
+            next();
+        }
+    })
+
+    // Use json body parser
+    app.use(bodyParser.json());
+
+    // Webhook should be received as POST
+    app.post('/tradingview-listener', function (req, res) {
+        // get request body
+        const webhook_data = req.body;
+        console.log('Webhook received', webhook_data);
+
+        // format order variables
+        const order_direction = webhook_data.direction,
+            order_price     = webhook_data.price,
+            order_type      = webhook_data.type,
+            order_symbol    = webhook_data.symbol,
+            [order_asset, order_market] = order_symbol.split('/');
+
+        if(!order_direction || !order_price || !order_type || !order_symbol || !order_asset || !order_market) {
+            console.log('Wrong Webhook format. Throw 403')
+            res.status(403).send()
+            return;
+        }
+
+        (async () => {
+            let responses = {}
+            for (const [name, data] of Object.entries(conf.accounts)) {
+                if(Object.keys(portfolios).includes(data.exchange)) {
+                    const portfolio = portfolios[data.exchange];
+                    portfolio.name = name;
+                    portfolio.exchange.apiKey = data.apiKey;
+                    portfolio.exchange.secret = data.secret;
+                    await executeStrategy(portfolio, order_direction, order_price, order_type, order_symbol, order_asset, order_market).then((json) => {
+                        responses[portfolio.name] = json;
+                    });
+                }
+            }
+            return res.json(responses)
+        })()
+
+    });
 }
 
 const executeStrategy = async (portfolio, order_direction, order_price, order_type, order_symbol, order_asset, order_market) => {
@@ -140,7 +161,6 @@ const executeStrategy = async (portfolio, order_direction, order_price, order_ty
 
     // get available balance
     portfolio_balance = await portfolio.getBalance(order_symbol);
-
     // pass order
     order_amount = order_direction==='buy'?portfolio_balance['market']/order_price:(order_direction==='sell'?portfolio_balance['asset']:0);
     order_amount = order_amount*0.1 // 10% of available balance)
@@ -161,3 +181,8 @@ const executeStrategy = async (portfolio, order_direction, order_price, order_ty
         order_market
     };
 }
+
+;(async function main() {
+    await initPortfolios();
+    await initServer();
+})()

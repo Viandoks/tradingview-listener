@@ -1,20 +1,19 @@
 {
-  "exchanges" : {
-    "binance": {
-      "test-1": {
-        "apiKey": "apikey1",
-        "secret": "secret1"
-      },
-      "test-2": {
-        "apiKey": "apikey2",
-        "secret": "secret2"
-      }
+  "accounts" : {
+    "account-name-1": {
+      "exchange": "binance",
+      "apiKey": "apikey1",
+      "secret": "secret1"
     },
-    "poloniex": {
-      "test-3": {
-        "apiKey": "apikey3",
-        "secret": "secret3"
-      }
+    "account-name-2": {
+      "exchange": "binance",
+      "apiKey": "apikey2",
+      "secret": "secret2"
+    },
+    "account-name-3": {
+      "exchange": "poloniex",
+      "apiKey": "apikey3",
+      "secret": "secret3"
     }
   },
   "serverPort": 8000,
